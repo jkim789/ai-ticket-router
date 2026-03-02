@@ -1,0 +1,21 @@
+# Cloudflare Zero Trust Tunnel Configuration
+# Copy this to ~/.cloudflared/config.yml on your VPS
+#
+# Setup:
+#   1. Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+#   2. Authenticate: cloudflared tunnel login
+#   3. Create tunnel: cloudflared tunnel create ticket-router
+#   4. Copy this config: cp deploy/cloudflared.yml ~/.cloudflared/config.yml
+#   5. Route DNS: cloudflared tunnel route dns ticket-router tickets.cognurix.com
+#   6. Run tunnel: cloudflared tunnel run ticket-router
+#
+# For systemd service (auto-start on boot):
+#   sudo cloudflared service install
+
+tunnel: <YOUR_TUNNEL_ID>
+credentials-file: /root/.cloudflared/<YOUR_TUNNEL_ID>.json
+
+ingress:
+  - hostname: tickets.cognurix.com
+    service: http://localhost:8000
+  - service: http_status:404

@@ -1,0 +1,72 @@
+services:
+  app:
+    build: .
+    container_name: intelligent_ticket_router
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+    env_file:
+      - .env
+    volumes:
+      - app_data:/app/data
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ticket_router_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: ticket_router_chromadb
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    restart: unless-stopped
+    networks:
+      - ticket_router_network
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8000'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  seed:
+    build: .
+    container_name: ticket_router_seed
+    command: python scripts/seed_kb.py
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+    env_file:
+      - .env
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    networks:
+      - ticket_router_network
+    profiles:
+      - seed
+
+volumes:
+  app_data:
+    driver: local
+  chroma_data:
+    driver: local
+
+networks:
+  ticket_router_network:
+    driver: bridge

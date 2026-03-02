@@ -1,0 +1,51 @@
+# Version control
+.git
+.gitignore
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Testing
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+
+# Documentation
+*.md
+!data/seed/knowledge_base/*.md
+
+# CI/CD
+.github/
+
+# Claude Code
+.claude/
+
+# Data (mounted as volumes)
+data/chroma/
+data/*.db
+data/*.db-journal
+
+# Docker
+docker-compose.yml
+docker-compose.override.yml
+Dockerfile
+
+# OS
+.DS_Store
+Thumbs.db
