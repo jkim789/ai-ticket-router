@@ -71,7 +71,7 @@ clean:
 
 VPS_HOST ?= your-vps-ip
 VPS_USER ?= root
-VPS_DIR ?= ~/projects/intelligent-ticket-router
+VPS_DIR ?= ~/projects/ai-ticket-router
 
 deploy:
 	@echo "Deploying to $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)..."
