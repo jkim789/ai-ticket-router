@@ -28,10 +28,10 @@ async def classify_intent(state: TicketState) -> TicketState:
     Returns:
         Updated state with intent, sentiment, urgency, and trace entry
     """
-    logger.info("Classifying intent for message")
-
-    if "agent_trace" not in state:
-        state["agent_trace"] = []
+    logger.info(
+        "classify_intent_start",
+        extra={"request_id": state.get("request_id")},
+    )
 
     client = get_llm_client()
 
@@ -81,37 +81,54 @@ Respond ONLY with the JSON object, no other text."""
         content = response.choices[0].message.content
         result = json.loads(content)
 
-        state["intent"] = result["intent"]
-        state["sentiment"] = result["sentiment"]
-        state["urgency"] = result["urgency"]
-        state["model_used"] = settings.LLM_MODEL
-
         trace_msg = (
             f"classify_intent: {result['intent']} "
             f"(sentiment: {result['sentiment']}, urgency: {result['urgency']}) - "
             f"{result['reasoning']}"
         )
-        state["agent_trace"].append(trace_msg)
+        agent_trace = state.get("agent_trace", [])
+        agent_trace = [*agent_trace, trace_msg]
 
         logger.info(
-            f"Classification complete: intent={result['intent']}, "
-            f"sentiment={result['sentiment']}, urgency={result['urgency']}"
+            "classify_intent_complete",
+            extra={
+                "request_id": state.get("request_id"),
+                "action": "classify",
+            },
         )
 
+        return {
+            "intent": result["intent"],
+            "sentiment": result["sentiment"],
+            "urgency": result["urgency"],
+            "model_used": settings.LLM_MODEL,
+            "agent_trace": agent_trace,
+        }
+
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse classification JSON: {e}")
-        # Fallback to general
-        state["intent"] = "general"
-        state["sentiment"] = "neutral"
-        state["urgency"] = "medium"
-        state["agent_trace"].append(f"classify_intent: ERROR - {str(e)} (fallback to general)")
+        logger.error("Failed to parse classification JSON", exc_info=True)
+        agent_trace = state.get("agent_trace", [])
+        agent_trace = [
+            *agent_trace,
+            f"classify_intent: ERROR - {str(e)} (fallback to general)",
+        ]
+        return {
+            "intent": "general",
+            "sentiment": "neutral",
+            "urgency": "medium",
+            "agent_trace": agent_trace,
+        }
 
     except Exception as e:
-        logger.error(f"Error in classify_intent: {e}", exc_info=True)
-        # Fallback
-        state["intent"] = "general"
-        state["sentiment"] = "neutral"
-        state["urgency"] = "medium"
-        state["agent_trace"].append(f"classify_intent: ERROR - {str(e)}")
-
-    return state
+        logger.error("Error in classify_intent", exc_info=True)
+        agent_trace = state.get("agent_trace", [])
+        agent_trace = [
+            *agent_trace,
+            f"classify_intent: ERROR - {str(e)}",
+        ]
+        return {
+            "intent": "general",
+            "sentiment": "neutral",
+            "urgency": "medium",
+            "agent_trace": agent_trace,
+        }

@@ -7,6 +7,7 @@ help:
 	@echo "    make dev         - Start FastAPI in development mode (local)"
 	@echo "    make test        - Run pytest suite"
 	@echo "    make lint        - Run ruff linter"
+	@echo "    make eval        - Run offline evaluation over labeled dataset"
 	@echo "    make seed        - Load seed documents into ChromaDB (local)"
 	@echo ""
 	@echo "  Docker:"
@@ -24,19 +25,22 @@ help:
 # --- Development ---
 
 dev:
-	uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+	python -m uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
 test:
-	pytest tests/ -v --cov=src --cov-report=term-missing
+	python -m pytest tests/ -v --cov=src --cov-report=term-missing
 
 lint:
 	ruff check src/ tests/
 
+eval:
+	python -m scripts.run_evaluation
+
 seed:
-	python scripts/seed_kb.py
+	python -m scripts.seed_kb
 
 seed-test:
-	python scripts/seed_kb.py --test
+	python -m scripts.seed_kb --test
 
 # --- Docker ---
 

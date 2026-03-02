@@ -1,0 +1,11 @@
+{"id": "billing_refund_angry", "message": "I was charged twice for order #12345 and nobody is responding. I want a refund now.", "expected_intent": "refund", "expected_action": "route_to_human"}
+{"id": "billing_happy", "message": "Hi there! Can you help me update the credit card on my subscription?", "expected_intent": "billing", "expected_action": "auto_respond"}
+{"id": "technical_password_reset", "message": "I can't log in because I forgot my password. How do I reset it?", "expected_intent": "technical", "expected_action": "auto_respond"}
+{"id": "technical_outage", "message": "Our dashboard has been down for 30 minutes and we can't access any reports.", "expected_intent": "technical", "expected_action": "route_to_human"}
+{"id": "shipping_delay", "message": "My shipment is two weeks late. The tracking page hasn't updated since last Tuesday.", "expected_intent": "shipping", "expected_action": "route_to_human"}
+{"id": "shipping_status", "message": "Can you tell me when order #98765 is expected to arrive?", "expected_intent": "shipping", "expected_action": "auto_respond"}
+{"id": "general_pricing", "message": "Do you offer discounts for non-profits or educational institutions?", "expected_intent": "general", "expected_action": "auto_respond"}
+{"id": "complaint_support_quality", "message": "I've contacted support three times and still haven't received a helpful answer. This is really frustrating.", "expected_intent": "complaint", "expected_action": "route_to_human"}
+{"id": "refund_policy_question", "message": "What's your refund policy if I cancel within the first 14 days?", "expected_intent": "refund", "expected_action": "auto_respond"}
+{"id": "angry_critical_outage", "message": "Your service is down and it's costing us money every minute. This is unacceptable.", "expected_intent": "complaint", "expected_action": "route_to_human"}
+

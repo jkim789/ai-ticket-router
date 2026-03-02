@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from src.agent.state import TicketState
 from src.api.dependencies import get_agent_graph, get_ticket_store
@@ -40,7 +40,8 @@ router = APIRouter(prefix="/api/v1/tickets", tags=["tickets"])
     ),
 )
 async def process_ticket(
-    request: ProcessTicketRequest,
+    request_body: ProcessTicketRequest,
+    request: Request,
     graph=Depends(get_agent_graph),
     ticket_store: TicketStore = Depends(get_ticket_store),
 ) -> ProcessTicketResponse:
@@ -67,17 +68,25 @@ async def process_ticket(
     start_time = time.time()
 
     try:
+        request_id: Optional[str] = getattr(request.state, "request_id", None)
         # Build initial state
         initial_state: TicketState = {
-            "raw_message": request.message,
-            "customer_id": request.customer_id,
-            "channel": request.channel,
+            "raw_message": request_body.message,
+            "customer_id": request_body.customer_id,
+            "channel": request_body.channel,
             "timestamp": datetime.now(),
             "agent_trace": [],
+            "request_id": request_id,
         }
 
         # Run the graph
-        logger.info("Processing ticket for customer: %s", request.customer_id)
+        logger.info(
+            "processing_ticket",
+            extra={
+                "request_id": request_id,
+                "ticket_id": None,
+            },
+        )
         result = await graph.ainvoke(initial_state)
 
         # Calculate processing time
@@ -127,22 +136,25 @@ async def process_ticket(
             routing_priority=routing.priority if routing else None,
             kb_confidence=result.get("kb_confidence", 0.0),
             processing_time_ms=processing_time_ms,
-            customer_id=request.customer_id,
-            channel=request.channel,
+            customer_id=request_body.customer_id,
+            channel=request_body.channel,
             created_at=datetime.now(),
         )
         await ticket_store.add(
             ticket=history_item,
-            raw_message=request.message,
+            raw_message=request_body.message,
             auto_response=result.get("auto_response"),
             routing_summary=routing_summary,
         )
 
         logger.info(
-            "Ticket processed: id=%s action=%s time=%.0fms",
-            ticket_id,
-            result["action"],
-            processing_time_ms,
+            "ticket_processed",
+            extra={
+                "request_id": request_id,
+                "ticket_id": ticket_id,
+                "action": result["action"],
+                "duration_ms": processing_time_ms,
+            },
         )
 
         return response

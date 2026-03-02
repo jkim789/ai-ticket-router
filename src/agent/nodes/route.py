@@ -69,10 +69,10 @@ async def route_to_human(state: TicketState) -> TicketState:
     Returns:
         Updated state with routing information and trace entry
     """
-    logger.info("Creating handoff packet for human routing")
-
-    if "agent_trace" not in state:
-        state["agent_trace"] = []
+    logger.info(
+        "route_to_human_start",
+        extra={"request_id": state.get("request_id")},
+    )
 
     intent = state.get("intent", "general")
     sentiment = state.get("sentiment", "neutral")
@@ -134,17 +134,25 @@ Keep it concise and actionable."""
         for r in kb_results[:3]
     ] if kb_results else []
 
-    # Create routing packet
-    state["routing"] = {
-        "team": team,
-        "priority": priority,
-        "summary": summary,
-        "context": relevant_articles
-    }
-
     trace_msg = f"route_to_human: {team}, priority {priority}"
-    state["agent_trace"].append(trace_msg)
+    agent_trace = state.get("agent_trace", [])
+    agent_trace = [*agent_trace, trace_msg]
 
-    logger.info(f"Routing to {team} with {priority} priority")
+    logger.info(
+        "route_to_human_complete",
+        extra={
+            "request_id": state.get("request_id"),
+            "action": "route_to_human",
+        },
+    )
 
-    return state
+    # Create routing packet
+    return {
+        "routing": {
+            "team": team,
+            "priority": priority,
+            "summary": summary,
+            "context": relevant_articles,
+        },
+        "agent_trace": agent_trace,
+    }

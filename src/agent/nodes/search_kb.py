@@ -29,10 +29,10 @@ async def search_knowledge_base(
     Returns:
         Updated state with kb_results and trace entry
     """
-    logger.info(f"Searching knowledge base for intent: {state.get('intent')}")
-
-    if "agent_trace" not in state:
-        state["agent_trace"] = []
+    logger.info(
+        "search_kb_start",
+        extra={"request_id": state.get("request_id")},
+    )
 
     try:
         # Search with metadata filtering by intent category
@@ -42,25 +42,37 @@ async def search_knowledge_base(
             limit=5
         )
 
+        top_score = results[0]["score"] if results else 0.0
+        trace_msg = f"search_kb: found {len(results)} results, top score {top_score:.3f}"
+        agent_trace = state.get("agent_trace", [])
+        agent_trace = [*agent_trace, trace_msg]
+
+        logger.info(
+            "search_kb_complete",
+            extra={
+                "request_id": state.get("request_id"),
+            },
+        )
+
         # Format results
-        state["kb_results"] = [
+        kb_results = [
             {
                 "content": doc["content"],
                 "score": doc["score"],
-                "metadata": doc.get("metadata", {})
+                "metadata": doc.get("metadata", {}),
             }
             for doc in results
         ]
-
-        top_score = results[0]["score"] if results else 0.0
-        trace_msg = f"search_kb: found {len(results)} results, top score {top_score:.3f}"
-        state["agent_trace"].append(trace_msg)
-
-        logger.info(f"Found {len(results)} KB results")
+        return {
+            "kb_results": kb_results,
+            "agent_trace": agent_trace,
+        }
 
     except Exception as e:
-        logger.error(f"Error in search_knowledge_base: {e}", exc_info=True)
-        state["kb_results"] = []
-        state["agent_trace"].append(f"search_kb: ERROR - {str(e)}")
-
-    return state
+        logger.error("Error in search_knowledge_base", exc_info=True)
+        agent_trace = state.get("agent_trace", [])
+        agent_trace = [*agent_trace, f"search_kb: ERROR - {str(e)}"]
+        return {
+            "kb_results": [],
+            "agent_trace": agent_trace,
+        }

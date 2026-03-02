@@ -38,4 +38,5 @@ class TicketState(TypedDict, total=False):
     # Metadata
     processing_time_ms: Optional[float]
     model_used: Optional[str]
+    request_id: Optional[str]
     agent_trace: Optional[list[str]]  # Step-by-step execution trace

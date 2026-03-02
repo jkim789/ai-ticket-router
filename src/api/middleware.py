@@ -42,14 +42,17 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             HTTP response with added X-Request-ID header
         """
         request_id = str(uuid.uuid4())[:8]
+        request.state.request_id = request_id
         start_time = time.time()
 
-        # Log incoming request
+        # Log incoming request with structured fields
         logger.info(
-            "Request started | id=%s method=%s path=%s",
-            request_id,
-            request.method,
-            request.url.path,
+            "request_started",
+            extra={
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+            },
         )
 
         response = await call_next(request)
@@ -57,14 +60,16 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
 
-        # Log completed request
+        # Log completed request with structured fields
         logger.info(
-            "Request completed | id=%s method=%s path=%s status=%d duration=%.0fms",
-            request_id,
-            request.method,
-            request.url.path,
-            response.status_code,
-            duration_ms,
+            "request_completed",
+            extra={
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": duration_ms,
+            },
         )
 
         # Add request ID to response headers

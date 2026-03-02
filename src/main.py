@@ -18,13 +18,11 @@ from src.api.middleware import RateLimitMiddleware, RequestLoggingMiddleware
 from src.api.routes import health, knowledge_base, tickets
 from src.config import settings
 from src.db.database import close_db, init_db
+from src.logging_config import configure_logging
 from src.rag.vectorstore import VectorStore
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+# Configure structured logging once at startup
+configure_logging()
 logger = logging.getLogger(__name__)
 
 

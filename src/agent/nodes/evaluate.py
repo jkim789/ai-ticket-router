@@ -31,32 +31,47 @@ async def evaluate_confidence(state: TicketState) -> TicketState:
     Returns:
         Updated state with kb_confidence, action, and trace entry
     """
-    logger.info("Evaluating KB confidence")
-
-    if "agent_trace" not in state:
-        state["agent_trace"] = []
+    logger.info(
+        "evaluate_confidence_start",
+        extra={"request_id": state.get("request_id")},
+    )
 
     kb_results = state.get("kb_results", [])
 
     # If no results, route to human immediately
     if not kb_results:
-        state["kb_confidence"] = 0.0
-        state["action"] = "route_to_human"
-        state["agent_trace"].append("evaluate_confidence: 0.00 (no KB results, routing to human)")
-        logger.info("No KB results found, routing to human")
-        return state
+        logger.info(
+            "evaluate_confidence_no_results",
+            extra={"request_id": state.get("request_id")},
+        )
+        agent_trace = state.get("agent_trace", [])
+        agent_trace = [
+            *agent_trace,
+            "evaluate_confidence: 0.00 (no KB results, routing to human)",
+        ]
+        return {
+            "kb_confidence": 0.0,
+            "action": "route_to_human",
+            "agent_trace": agent_trace,
+        }
 
     # Calculate average similarity score
     avg_score = sum(r["score"] for r in kb_results) / len(kb_results)
 
     # If similarity is very low, route immediately
     if avg_score < 0.5:
-        state["kb_confidence"] = avg_score
-        state["action"] = "route_to_human"
         trace_msg = f"evaluate_confidence: {avg_score:.2f} (low similarity, routing to human)"
-        state["agent_trace"].append(trace_msg)
-        logger.info(f"Low similarity score {avg_score:.2f}, routing to human")
-        return state
+        agent_trace = state.get("agent_trace", [])
+        agent_trace = [*agent_trace, trace_msg]
+        logger.info(
+            "evaluate_confidence_low_similarity",
+            extra={"request_id": state.get("request_id")},
+        )
+        return {
+            "kb_confidence": avg_score,
+            "action": "route_to_human",
+            "agent_trace": agent_trace,
+        }
 
     # Use LLM to evaluate quality
     client = get_llm_client()
@@ -102,27 +117,42 @@ Respond ONLY with the JSON object."""
         result = json.loads(content)
 
         kb_confidence = result["confidence"]
-        state["kb_confidence"] = kb_confidence
 
         # Apply threshold
         if kb_confidence >= settings.CONFIDENCE_THRESHOLD:
-            state["action"] = "auto_respond"
+            action = "auto_respond"
             trace_msg = f"evaluate_confidence: {kb_confidence:.2f} (above threshold, auto-responding)"
         else:
-            state["action"] = "route_to_human"
+            action = "route_to_human"
             trace_msg = f"evaluate_confidence: {kb_confidence:.2f} (below threshold, routing to human)"
 
-        state["agent_trace"].append(trace_msg)
+        agent_trace = state.get("agent_trace", [])
+        agent_trace = [*agent_trace, trace_msg]
 
         logger.info(
-            f"Confidence evaluation: {kb_confidence:.2f}, action: {state['action']}"
+            "evaluate_confidence_complete",
+            extra={
+                "request_id": state.get("request_id"),
+                "action": action,
+            },
         )
 
-    except Exception as e:
-        logger.error(f"Error in evaluate_confidence: {e}", exc_info=True)
-        # Be conservative - route to human on error
-        state["kb_confidence"] = 0.3
-        state["action"] = "route_to_human"
-        state["agent_trace"].append(f"evaluate_confidence: ERROR - {str(e)} (routing to human)")
+        return {
+            "kb_confidence": kb_confidence,
+            "action": action,
+            "agent_trace": agent_trace,
+        }
 
-    return state
+    except Exception as e:
+        logger.error("Error in evaluate_confidence", exc_info=True)
+        agent_trace = state.get("agent_trace", [])
+        agent_trace = [
+            *agent_trace,
+            f"evaluate_confidence: ERROR - {str(e)} (routing to human)",
+        ]
+        # Be conservative - route to human on error
+        return {
+            "kb_confidence": 0.3,
+            "action": "route_to_human",
+            "agent_trace": agent_trace,
+        }

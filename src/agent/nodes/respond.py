@@ -26,10 +26,10 @@ async def generate_response(state: TicketState) -> TicketState:
     Returns:
         Updated state with auto_response and trace entry
     """
-    logger.info("Generating auto-response")
-
-    if "agent_trace" not in state:
-        state["agent_trace"] = []
+    logger.info(
+        "generate_response_start",
+        extra={"request_id": state.get("request_id")},
+    )
 
     kb_results = state.get("kb_results", [])
 
@@ -69,21 +69,35 @@ Generate the response now:"""
         )
 
         auto_response = response.choices[0].message.content.strip()
-        state["auto_response"] = auto_response
+        trace_msg = f"generate_response: created {len(auto_response)} char response"
+        agent_trace = state.get("agent_trace", [])
+        agent_trace = [*agent_trace, trace_msg]
 
-        state["agent_trace"].append(
-            f"generate_response: created {len(auto_response)} char response"
+        logger.info(
+            "generate_response_complete",
+            extra={
+                "request_id": state.get("request_id"),
+                "action": "auto_respond",
+            },
         )
 
-        logger.info(f"Generated auto-response ({len(auto_response)} characters)")
+        return {
+            "auto_response": auto_response,
+            "agent_trace": agent_trace,
+        }
 
     except Exception as e:
-        logger.error(f"Error in generate_response: {e}", exc_info=True)
-        state["auto_response"] = (
-            "Thank you for contacting NovaTech Solutions. "
-            "We're experiencing a temporary issue generating your response. "
-            "A support team member will follow up with you shortly."
-        )
-        state["agent_trace"].append(f"generate_response: ERROR - {str(e)}")
-
-    return state
+        logger.error("Error in generate_response", exc_info=True)
+        agent_trace = state.get("agent_trace", [])
+        agent_trace = [
+            *agent_trace,
+            f"generate_response: ERROR - {str(e)}",
+        ]
+        return {
+            "auto_response": (
+                "Thank you for contacting NovaTech Solutions. "
+                "We're experiencing a temporary issue generating your response. "
+                "A support team member will follow up with you shortly."
+            ),
+            "agent_trace": agent_trace,
+        }

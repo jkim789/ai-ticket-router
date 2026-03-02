@@ -24,7 +24,9 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # ChromaDB
-    CHROMA_HOST: str = "chromadb"
+    # Default to embedded/persistent Chroma for local development.
+    # Docker Compose overrides this to "chromadb" for the HTTP server.
+    CHROMA_HOST: str = "127.0.0.1"
     CHROMA_PORT: int = 8000
     CHROMA_COLLECTION_NAME: str = "novatech_knowledge_base"
 

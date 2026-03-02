@@ -222,3 +222,50 @@ If scaling beyond a single VPS, these components would change:
 | In-memory embedding cache | Redis | Shared cache across instances |
 
 The current architecture is intentionally simple for a portfolio demo on a single VPS. The abstractions (dependency injection, async I/O, Pydantic models) make migration to production infrastructure straightforward.
+
+---
+
+## Evaluation & Scaling Strategy
+
+### Model and Routing Evaluation
+
+To avoid treating the agent as a black box, the project includes a small labeled dataset and an evaluation script:
+
+- `evaluation/dataset.jsonl`: Hand-crafted examples with expected `intent` and `action` (auto_respond vs route_to_human).
+- `scripts/run_evaluation.py`: Async runner that:
+  - Initializes the real LangGraph pipeline (including ChromaDB and LLM).
+  - Executes each example end-to-end.
+  - Reports intent accuracy, routing accuracy, and per-class precision/recall.
+
+Run locally with:
+
+```bash
+make eval
+```
+
+This is intentionally lightweight, but it establishes the pattern for:
+
+- Adding more labeled data from production tickets over time.
+- Tracking metrics over git commits or deployments.
+- Comparing different confidence thresholds or prompt versions.
+
+### Scaling the System
+
+The path from single VPS to production cluster focuses on three dimensions:
+
+- **Throughput**
+  - Move from SQLite to PostgreSQL with connection pooling for concurrent writes.
+  - Replace in-process calls with a task queue (e.g., Celery + Redis) for high-volume ticket processing.
+  - Horizontally scale FastAPI instances behind a load balancer or Kubernetes.
+
+- **Reliability**
+  - Use a managed vector database (Pinecone/Weaviate) with replication instead of self-hosted ChromaDB.
+  - Add circuit breakers and timeouts around LLM and vectorstore calls.
+  - Persist evaluation metrics and key decision signals (intent, action, confidence) for offline analysis.
+
+- **Model and Prompt Evolution**
+  - Version prompts and thresholds explicitly (e.g., `PROMPT_VERSION`, `CONFIDENCE_THRESHOLD` history).
+  - Store prompt/version metadata alongside each processed ticket to enable backtesting.
+  - Experiment with different models (Groq, Anthropic, OpenAI) and compare evaluation metrics using the same dataset.
+
+These steps turn the current demo into a system that can be measured, iterated on, and safely scaled as ticket volume and model complexity grow.

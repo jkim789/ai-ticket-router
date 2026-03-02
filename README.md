@@ -5,8 +5,6 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com)
 [![LangGraph](https://img.shields.io/badge/LangGraph-0.2+-purple.svg)](https://langchain-ai.github.io/langgraph/)
-[![Tests](https://img.shields.io/badge/Tests-86%20passing-brightgreen.svg)]()
-[![Coverage](https://img.shields.io/badge/Coverage-83%25-brightgreen.svg)]()
 
 **Live Demo:** [tickets.cognurix.com](https://tickets.cognurix.com)
 **API Docs:** [tickets.cognurix.com/docs](https://tickets.cognurix.com/docs)
@@ -122,8 +120,8 @@ intelligent-ticket-router/
 ### 1. Clone and Configure
 
 ```bash
-git clone https://github.com/joonhkim/intelligent-ticket-router.git
-cd intelligent-ticket-router
+git clone https://github.com/jkim789/ai-ticket-router.git
+cd ai-ticket-router
 
 cp .env.example .env
 # Edit .env and add your GROQ_API_KEY and OPENAI_API_KEY
